@@ -11,6 +11,7 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 import android.os.Message;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -34,6 +35,7 @@ import java.util.List;
 
 import p2p.android.telephony.BroadCaster.WifiDirectBroadcastReceiver;
 
+
 public class HomePage extends AppCompatActivity {
     private Button btnOffOn,btnDiscover,btnSend;
     private ListView deviceList;
@@ -50,17 +52,29 @@ public class HomePage extends AppCompatActivity {
     private List<WifiP2pDevice> peers = new ArrayList<WifiP2pDevice>();
     private String[] deviceArrayName;
     private WifiP2pDevice[] deviceArray;
+
+    private clientClass cClass;
+    private serverClass sClass;
+    private chatter chatterClass;
+
     static final int MESSAGE_READ=-1;
 
-    ServerClass serverClass;
-    ClientCLass clientCLass;
-    SendReceive sendReceive;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home_page);
-        IntiateWork();
-        exqListener();
+        int SDK_INT = android.os.Build.VERSION.SDK_INT;
+        if (SDK_INT > 8)
+        {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+                    .permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+            //your codes here
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_home_page);
+            IntiateWork();
+            exqListener();
+
+        }
+
     }
     Handler handler=new Handler(new Handler.Callback() {
         @Override
@@ -194,7 +208,9 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String msg=showMsg.getText().toString();
-                sendReceive.write(msg.getBytes());
+                System.out.println("SENT MESSAGE IS");
+                System.out.println(msg);
+                chatterClass.write(msg.getBytes());
             }
         });
     }
@@ -206,14 +222,14 @@ public class HomePage extends AppCompatActivity {
             if (info.groupFormed &&  info.isGroupOwner)
             {
                 ConnectionStatus.setText("Host");
-                serverClass=new ServerClass();
-                serverClass.start();
+                sClass=new serverClass();
+                sClass.start();
             }
             else if (info.groupFormed)
             {
                 ConnectionStatus.setText("Client");
-                clientCLass=new ClientCLass(groupownerAddress);
-                clientCLass.start();
+                cClass=new clientClass(groupownerAddress);
+                cClass.start();
             }
         }
     };
@@ -230,42 +246,66 @@ public class HomePage extends AppCompatActivity {
         unregisterReceiver(mReceiver);
     }
 
-    public class ServerClass extends Thread{
+    private class serverClass extends Thread {
         Socket socket;
         ServerSocket serverSocket;
 
         @Override
         public void run() {
-            try {
-                serverSocket=new ServerSocket(8887);
-                socket=serverSocket.accept();
-                sendReceive=new SendReceive(socket);
-                sendReceive.start();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            finally
+            try
             {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                serverSocket=new ServerSocket(8888);
+                socket=serverSocket.accept();
+                //Chatting part
+                chatterClass=new chatter(socket);
+                chatterClass.start();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
             }
         }
     }
-    public class SendReceive extends Thread {
+
+    public class clientClass extends Thread {
+        Socket socket;
+        String hostAdd;
+
+        public clientClass(InetAddress hostaddress) {
+            hostAdd=hostaddress.getHostAddress();
+            socket=new Socket();
+        }
+
+        @Override
+        public void run() {
+            try
+            {
+                socket.connect(new InetSocketAddress(hostAdd,8888),500);
+                //Chatting Part
+                chatterClass=new chatter(socket);
+                chatterClass.start();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public class chatter extends Thread {
+        static final int MESSAGE_READ=-1;
         private Socket socket;
         private InputStream inputStream;
         private OutputStream outputStream;
 
-        public SendReceive(Socket skt)
+
+        public chatter(Socket skt)
         {
             socket=skt;
-            try {
-                inputStream = socket.getInputStream();
-                outputStream = socket.getOutputStream();
+            try
+            {
+                inputStream=(InputStream)socket.getInputStream();
+                outputStream=(OutputStream)socket.getOutputStream();
             }
             catch (IOException e)
             {
@@ -285,51 +325,41 @@ public class HomePage extends AppCompatActivity {
                     if (bytes>0)
                     {
                         handler.obtainMessage(MESSAGE_READ,bytes,-1,buffer).sendToTarget();
-
                     }
                 }
-                catch (IOException e)
-                {
+                catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
         public void write(byte[] bytes)
         {
-            try {
+            try
+            {
+                if (outputStream==null)
+                {
+                    System.out.println("OUTPUTSTREAM IS NULL");
+                }
                 outputStream.write(bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-    public class ClientCLass extends Thread {
-        Socket socket;
-        String hostAdd;
-        public ClientCLass(InetAddress hostAddress)
-        {
-            hostAdd=hostAddress.getHostAddress();
-            socket= new Socket();
-            sendReceive=new SendReceive(socket);
-            sendReceive.start();
-        }
-
-        @Override
-        public void run() {
-            try {
-                socket.connect(new InetSocketAddress(hostAdd,8887),500);
             }
             catch (IOException e) {
                 e.printStackTrace();
             }
-            finally
+        }
+
+
+        public void close()
+        {
+            try
             {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                outputStream.close();
+                inputStream.close();
             }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
+
 }
