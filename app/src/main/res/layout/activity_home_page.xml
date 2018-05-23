@@ -12,7 +12,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="8dp">
+        tools:layout_editor_absoluteY="8dp"
+        tools:ignore="MissingConstraints">
 
         <TextView
             android:id="@+id/connectionStatus"
@@ -25,7 +26,8 @@
             android:textAlignment="center"
             android:textColor="@android:color/holo_blue_dark"
             android:textSize="18sp"
-            android:textStyle="italic" />
+            android:textStyle="italic"
+            android:layout_alignParentLeft="true" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -42,7 +44,8 @@
                 android:layout_alignParentTop="true"
                 android:layout_margin="10dp"
                 android:layout_weight="1"
-                android:text="Wifi On" />
+                android:text="Wifi On"
+                android:layout_alignParentLeft="true" />
             <Button
                 android:id="@+id/discover"
                 android:layout_width="wrap_content"
@@ -63,7 +66,8 @@
             android:layout_alignParentStart="true"
             android:layout_below="@+id/onOff"
             android:layout_marginTop="25dp"
-            android:background="@android:color/holo_orange_light" />
+            android:background="@android:color/holo_orange_light"
+            android:layout_alignParentLeft="true" />
 
         <TextView
             android:id="@+id/readMsg"
@@ -76,32 +80,37 @@
             android:text="Message"
             android:textAlignment="center"
             android:textSize="20sp"
-            android:textStyle="italic" />
+            android:textStyle="italic"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentLeft="true" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/sendButton"
-                android:layout_width="wrap_content"
+            <EditText
+                android:id="@+id/writeMsg"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="10dp"
                 android:layout_alignParentBottom="true"
-                android:layout_alignParentEnd="true"
-                android:layout_weight="1"
-                android:text="Send" />
+                android:layout_alignParentStart="true"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:layout_toStartOf="@+id/sendButton"
+                android:layout_alignParentLeft="true"
+                android:layout_toLeftOf="@+id/sendButton" />
         </LinearLayout>
-        <EditText
-            android:id="@+id/writeMsg"
+        <Button
+            android:id="@+id/sendButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="10dp"
             android:layout_alignParentBottom="true"
-            android:layout_alignParentStart="true"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:layout_toStartOf="@+id/sendButton" />
+            android:layout_alignParentEnd="true"
+            android:layout_weight="1"
+            android:text="Send"
+            android:layout_alignParentRight="true" />
     </LinearLayout>
 
 
