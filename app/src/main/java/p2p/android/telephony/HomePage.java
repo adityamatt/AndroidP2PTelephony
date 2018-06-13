@@ -7,6 +7,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
@@ -26,6 +27,8 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -39,12 +42,12 @@ import p2p.android.telephony.BroadCaster.WifiDirectBroadcastReceiver;
 public class HomePage extends AppCompatActivity {
     private Button btnOffOn,btnDiscover,btnSend;
     private ListView deviceList;
-    public TextView readMsgBox,ConnectionStatus;
-    private EditText showMsg;
+    public static TextView readMsgBox,ConnectionStatus;
+    private EditText showMsg,Nick;
 
-    private WifiManager wifiManager;
-    private WifiP2pManager mManager;
-    private WifiP2pManager.Channel mChannel;
+    private  WifiManager wifiManager;
+    private static WifiP2pManager mManager;
+    private static WifiP2pManager.Channel mChannel;
 
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
@@ -53,9 +56,9 @@ public class HomePage extends AppCompatActivity {
     private String[] deviceArrayName;
     private WifiP2pDevice[] deviceArray;
 
-    private clientClass cClass;
-    private serverClass sClass;
-    private chatter chatterClass;
+    private static clientClass cClass;
+    private static serverClass sClass;
+    private static chatter chatterClass;
 
     static final int MESSAGE_READ=-1;
 
@@ -100,6 +103,7 @@ public class HomePage extends AppCompatActivity {
         btnSend=(Button)findViewById(R.id.sendButton);
         deviceList=(ListView)findViewById(R.id.peerListView);
         readMsgBox=(TextView) findViewById(R.id.readMsg);
+        Nick=(EditText)findViewById(R.id.Nick);
         ConnectionStatus=(TextView)findViewById(R.id.connectionStatus);
         showMsg=(EditText)findViewById(R.id.writeMsg);
         wifiManager=(WifiManager)getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -152,8 +156,11 @@ public class HomePage extends AppCompatActivity {
     private void exqListener()
     {
         btnOffOn.setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View v) {
+                disconnect();
+
                 if (wifiManager.isWifiEnabled())
                 {
                     wifiManager.setWifiEnabled(false);
@@ -169,6 +176,7 @@ public class HomePage extends AppCompatActivity {
         btnDiscover.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                changeDevName(Nick.getText().toString());
                 mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess(){
@@ -214,7 +222,46 @@ public class HomePage extends AppCompatActivity {
             }
         });
     }
+    public static void disconnect() {
+        if (mManager != null && mChannel != null) {
+            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                    if (group != null && mManager != null && mChannel != null
+                            && group.isGroupOwner()) {
+                        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
 
+                            @Override
+                            public void onSuccess() {
+                                if (cClass!=null) {
+                                    cClass.endConnection();
+                                    cClass=null;
+                                }
+                                if (sClass!=null)
+                                {
+                                    sClass.endConnection();
+                                    sClass=null;
+                                }
+                                if (chatterClass!=null)
+                                {
+                                    chatterClass.close();
+                                    //chatterClass=null;
+                                }
+                                ConnectionStatus.setText("Device is Disconnected");
+                                //Log.d(TAG, "removeGroup onSuccess -");
+                            }
+
+                            @Override
+                            public void onFailure(int reason) {
+                                ConnectionStatus.setText("Device is connected");
+                                //Log.d(TAG, "removeGroup onFailure -" + reason);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    }
     public WifiP2pManager.ConnectionInfoListener connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo info) {
@@ -265,6 +312,25 @@ public class HomePage extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+        public void endConnection()
+        {
+            try
+            {
+                socket.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                socket.close();
+                serverSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            socket=null;
+            serverSocket=null;
+        }
     }
 
     public class clientClass extends Thread {
@@ -289,6 +355,18 @@ public class HomePage extends AppCompatActivity {
             {
                 e.printStackTrace();
             }
+        }
+        public void endConnection()
+        {
+            try
+            {
+                socket.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            socket=null;
+            hostAdd=null;
         }
     }
 
@@ -352,6 +430,7 @@ public class HomePage extends AppCompatActivity {
         {
             try
             {
+                socket=null;
                 outputStream.close();
                 inputStream.close();
             }
@@ -359,6 +438,48 @@ public class HomePage extends AppCompatActivity {
                 e.printStackTrace();
             }
 
+        }
+
+    }
+    public void changeDevName(final String input)
+    {
+
+        try {
+            Class[] paramTypes = new Class[3];
+            paramTypes[0] = WifiP2pManager.Channel.class;
+            paramTypes[1] = String.class;
+            paramTypes[2] = WifiP2pManager.ActionListener.class;
+            Method setDeviceName = mManager.getClass().getMethod(
+                    "setDeviceName", paramTypes);
+            setDeviceName.setAccessible(true);
+
+            Object arglist[] = new Object[3];
+            arglist[0] = mChannel;
+            arglist[1] = input;
+            arglist[2] = new WifiP2pManager.ActionListener() {
+
+                @Override
+                public void onSuccess() {
+                    Toast.makeText(getApplicationContext(),"Device Name:"+input, Toast.LENGTH_SHORT);
+                    //Log.d("setDeviceName succeeded", "true");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Toast.makeText(getApplicationContext(),"Failed to Change the Name", Toast.LENGTH_SHORT);
+                    //Log.d("setDeviceName failed", "true");
+                }
+            };
+            setDeviceName.invoke(mManager, arglist);
+
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
         }
     }
 
