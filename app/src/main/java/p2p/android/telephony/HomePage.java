@@ -20,6 +20,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,11 +30,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import p2p.android.telephony.BroadCaster.WifiDirectBroadcastReceiver;
@@ -44,6 +49,7 @@ public class HomePage extends AppCompatActivity {
     private ListView deviceList;
     public static TextView readMsgBox,ConnectionStatus;
     private EditText showMsg,Nick;
+    private ImageButton CallBtn;
 
     private  WifiManager wifiManager;
     private static WifiP2pManager mManager;
@@ -98,6 +104,7 @@ public class HomePage extends AppCompatActivity {
 
     private void IntiateWork()
     {
+        CallBtn=(ImageButton) findViewById(R.id.CallButton);
         btnOffOn=(Button)findViewById(R.id.onOff);
         btnDiscover=(Button)findViewById(R.id.discover);
         btnSend=(Button)findViewById(R.id.sendButton);
@@ -155,6 +162,7 @@ public class HomePage extends AppCompatActivity {
     };
     private void exqListener()
     {
+
         btnOffOn.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -212,6 +220,21 @@ public class HomePage extends AppCompatActivity {
                 });
             }
         });
+        CallBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (chatterClass==null)
+                {
+                    //do nothing
+                }
+                else
+                {
+                    //String ip = getDottedDecimalIP(getLocalIPAddress());
+                    String ip = getDottedDecimalIP(getLocalIPAddress());
+                    System.out.println(ip);
+                }
+            }
+        });
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -219,6 +242,19 @@ public class HomePage extends AppCompatActivity {
                 System.out.println("SENT MESSAGE IS");
                 System.out.println(msg);
                 chatterClass.write(msg.getBytes());
+            }
+        });
+        CallBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ConnectionStatus.getText().toString().equals("Host") || ConnectionStatus.getText().toString().equals("Client"))
+                {
+
+                }
+                else
+                {
+                    Toast.makeText(getApplicationContext(),"You are not connected to anyone",Toast.LENGTH_SHORT);
+                }
             }
         });
     }
@@ -482,5 +518,37 @@ public class HomePage extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+    private byte[] getLocalIPAddress() {
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress()) {
+                        if (inetAddress instanceof Inet4Address) { // fix for Galaxy Nexus. IPv4 is easy to use :-)
+                            return inetAddress.getAddress();
+                        }
+                        //return inetAddress.getHostAddress().toString(); // Galaxy Nexus returns IPv6
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
+        } catch (NullPointerException ex) {
+            //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
+        }
+        return null;
+    }
 
+    private String getDottedDecimalIP(byte[] ipAddr) {
+        //convert to dotted decimal notation:
+        String ipAddrStr = "";
+        for (int i=0; i<ipAddr.length; i++) {
+            if (i > 0) {
+                ipAddrStr += ".";
+            }
+            ipAddrStr += ipAddr[i]&0xFF;
+        }
+        return ipAddrStr;
+    }
 }

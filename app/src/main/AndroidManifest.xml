@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="p2p.android.telephony">
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission
         android:required="true"
         android:name="android.permission.CHANGE_NETWORK_STATE"/>

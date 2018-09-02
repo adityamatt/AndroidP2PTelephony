@@ -59,13 +59,29 @@
 
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/Nick"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Name" />
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/Nick"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:layout_weight="1"
+                android:inputType="textPersonName"
+                android:text="DeviceNick" />
+
+            <ImageButton
+                android:padding="5dp"
+                android:id="@+id/CallButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/holo_blue_dark"
+                app:srcCompat="@android:drawable/sym_action_call" />
+
+        </LinearLayout>
+
 
         <ListView
             android:id="@+id/peerListView"
